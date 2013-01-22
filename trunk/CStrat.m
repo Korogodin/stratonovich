@@ -114,6 +114,7 @@ classdef CStrat < handle
             end
             s = [s ');'];
             eval(s);
+            
         end
         
         function resizeXextr(SF)
@@ -194,7 +195,7 @@ classdef CStrat < handle
         
         function Observe(SF, lnL)
             ln_pest = log(SF.separatePD(SF.Pextr, 120)) + lnL;
-            pest = SF.separatePD_ln(ln_pest, 120);
+            pest = SF.separatePD_ln(ln_pest, 10);
             SF.Pest = SF.normPD(pest);
         end
         
@@ -208,15 +209,17 @@ classdef CStrat < handle
             Ps = Ps / minP; % min -> 1
         end
         
-        function LnPs = separatePD_ln(SF, LnP, dyn_dB)
+        function pest = separatePD_ln(SF, LnP, dyn_dB)
             MaxLnP = max(LnP);
             for i = 2:SF.nx
                 MaxLnP = max(MaxLnP);
             end
             MinLnPs = MaxLnP - dyn_dB;
             LnPs = (LnP > MinLnPs ).*LnP  + (LnP <= MinLnPs )*MinLnPs ;
+            thereisPD = (LnP >= MinLnPs);
             LnPs = LnPs - MinLnPs;
-            LnPs = exp(LnPs).*(LnPs > MinLnPs); % *0, if  arg = argmax - dB_est
+            LnPs = SF.setPestArea(LnPs, thereisPD);
+            pest = exp(LnPs).*thereisPD; % *0, if  arg = argmax - dB_est
         end
 
         function Pnorm = normPD(SF, P)
@@ -241,17 +244,17 @@ classdef CStrat < handle
                     nxp(n) = nxp(n) - 1;
                 end
             end
-%             for n = 1:SF.nx
-%                 step_ind = zeros(1, SF.nx);
-%                 step_ind(n) = 1;
-%                 if nxp(n) < SF.lenX(n)
-%                     Grad(n) = (P(SF.getLinIndex(nxp + step_ind)) - P(SF.getLinIndex(nxp))) / SF.dX(n);
-%                     stepX(n) = Xp(n) - SF.X{n}(nxp(n));
-%                 else
-%                     Grad(n) = 0;
-%                     stepX(n) = 0;
-%                 end
-%             end
+            for n = 1:SF.nx
+                step_ind = zeros(1, SF.nx);
+                step_ind(n) = 1;
+                if nxp(n) < SF.lenX(n)
+                    Grad(n) = (P(SF.getLinIndex(nxp + step_ind)) - P(SF.getLinIndex(nxp))) / SF.dX(n);
+                    stepX(n) = Xp(n) - SF.X{n}(nxp(n));
+                else
+                    Grad(n) = 0;
+                    stepX(n) = 0;
+                end
+            end
             p = P(SF.getLinIndex(nxp)) + Grad*stepX;
         end
         
@@ -284,9 +287,60 @@ classdef CStrat < handle
             end
         end
         
-%         function setPestArea(SF)
-%             SF.Pest > 0
-%         end
+        function cutedLnPs = setPestArea(SF, LnPs, thereisPD)
+            % LnPs in Xextr area now
+%             Vol = SF.lenXextr(1);
+%             Vol_true = sum(thereisPD);
+%             for n = 2:SF.nx
+%                 Vol = Vol * SF.lenXextr(n);
+%                 Vol_true = sum(Vol_true);
+%             end
+%             if Vol > 2*Vol_true % resize
+
+                
+                imin = ones(1, SF.nx);
+                imax = SF.lenX;                
+                if SF.nx == 2
+                    for n = 1:SF.lenX(1)
+                        if sum(thereisPD(n, :))
+                            imin(1) = n;
+                            break;
+                        end
+                    end
+                    
+                    for n = 1:SF.lenX(2)
+                        if sum(thereisPD(:, n))
+                            imin(2) = n;
+                            break;
+                        end
+                    end
+                    
+                    for n = SF.lenX(1):-1:1
+                        if sum(thereisPD(n, :))
+                            imax(1) = n;
+                            break;
+                        end
+                    end
+                    
+                    for n = SF.lenX(2):-1:1
+                        if sum(thereisPD(:, n))
+                            imax(2) = n;
+                            break;
+                        end
+                    end
+
+%                     SF.Xestmin = [SF.X{1}(imin(1)); SF.X{2}(imin(2))];
+%                     SF.Xestmax = [SF.X{1}(imax(1)); SF.X{2}(imax(2))];
+                    
+                    newXmin = [SF.X{1}(imin(1)); SF.X{2}(imin(2))];
+                    newXmax = [SF.X{1}(imax(1)); SF.X{2}(imax(2))];
+                    SF.resizeXest(newXmin, newXmax);
+                elseif SF.nx == 3
+                
+                end
+            
+            cutedLnPs = LnPs;
+        end
         
         function Resa = getResults(SF)
             Resa.X = SF.X;
