@@ -10,8 +10,6 @@ classdef CStrat < handle
         
         % Vectors
         dX
-        Xmin0
-        Xmax0
         
         Xestmin
         Xestmax
@@ -35,22 +33,16 @@ classdef CStrat < handle
     end
     
     methods
-        function SF = CStrat(dX, Xmin0, Xmax0, P0)
+        function SF = CStrat(T, Dxx, Xmin, Xmax, dX, P0)
             SF.nx = length(dX);
             SF.dX = dX;
-            SF.Xmin0 = Xmin0;
-            SF.Xmax0 = Xmax0;
             SF.Pest = P0;
-        end
-        
-        function SF = setAprioriParameters(SF, T, Dxx)
             SF.T = T;
             SF.Dxxm1 = 1/Dxx;
             SF.sqrtDxx = sqrt(Dxx);
-            SF.setXest(SF.Xmin0, SF.Xmax0);
-            SF.resizeXextr();
+            SF.setXest(Xmin, Xmax);
+            SF.resizeXextr();            
         end
-        
        
         function setXest(SF, Xmin, Xmax)
             jXestmin = floor(Xmin./SF.dX);
@@ -189,6 +181,18 @@ classdef CStrat < handle
                
             end
            SF.Pextr = SF.normPD(SF.Pextr);
+        end
+        
+        function nmax = getnArgMaxPest(SF)
+            if SF.nx == 2
+                [a b] = max(SF.Pest);
+                [nul, n2] = max(a);
+                n1 = b(n2);
+                nmax = [n1, n2];
+            else
+                disp('Need some function there... getArgMaxPest');
+                error; 
+            end
         end
         
         function Observe(SF, lnL)
@@ -357,12 +361,6 @@ classdef CStrat < handle
                 
             end
             cutedLnPs = cutXextr2Xest(SF, LnPs, imin, imax);
-        end
-        
-        function Resa = getResults(SF)
-            Resa.X = SF.X;
-            Resa.Pest = SF.Pest;
-            Resa.Pextr = SF.Pextr;
         end
     end
     
