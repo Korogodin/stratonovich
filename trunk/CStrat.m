@@ -30,6 +30,7 @@ classdef CStrat < handle
         X
         Xest
         Xextr 
+        Pest_j
     end
     
     methods
@@ -194,6 +195,33 @@ classdef CStrat < handle
                 error; 
             end
         end
+        
+        function calcPest_j(SF)
+            for j = 1:SF.nx
+                SF.Pest_j{j} = zeros(SF.lenXest(j), 1);
+            end
+            if SF.nx == 2
+                for j1 = 1:SF.lenXest(1)
+                    SF.Pest_j{1}(j1) = sum(SF.Pest(j1, :));
+                end
+                SF.Pest_j{1} = SF.Pest_j{1} / sum(SF.Pest_j{1}) / SF.dX(1);
+                for j2 = 1:SF.lenXest(2)
+                    SF.Pest_j{2}(j2) = sum(SF.Pest(:, j2));
+                end
+                SF.Pest_j{2} = SF.Pest_j{2} / sum(SF.Pest_j{2}) / SF.dX(2);
+            else
+                disp('Need some function there... calcPest_j');
+                error; 
+            end
+        end
+        
+        function mX = getMeanPest(SF)
+            mX = zeros(SF.nx, 1);
+            for n = 1:SF.nx
+                mX(n) = SF.Xest{n}*SF.Pest_j{n};
+            end
+            mX = mX.*SF.dX;
+        end        
         
         function Observe(SF, lnL)
             ln_pest = log(SF.separatePD(SF.Pextr, 120)) + lnL;

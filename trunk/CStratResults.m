@@ -12,6 +12,7 @@ classdef CStratResults < handle
         % Vector
         nArgMax
         ArgMax
+        Mean
         
         % Matrix
         Pest
@@ -37,6 +38,7 @@ classdef CStratResults < handle
             for n = 1:SFRes.nx
                 SFRes.nArgMax{n} = nan(1, K);
                 SFRes.ArgMax{n} = nan(1, K);
+                SFRes.Mean{n} = nan(1, K);                
             end
 
         end
@@ -44,11 +46,14 @@ classdef CStratResults < handle
         function takeResults(SFRes, SF)
             SFRes.k = SFRes.k + 1;
             ind_argmax = SF.getnArgMaxPest();
+            SF.calcPest_j();
+            mX = SF.getMeanPest();
             for n = 1:SFRes.nx
                 SFRes.Xest{n} = SF.Xest{n};
                 SFRes.Xextr{n} = SF.Xextr{n};
                 SFRes.nArgMax{n}(SFRes.k) = ind_argmax(n);
                 SFRes.ArgMax{n}(SFRes.k) = SF.Xest{n}(ind_argmax(n));
+                SFRes.Mean{n}(SFRes.k) = mX(n);
             end
             SFRes.Pest = SF.Pest;
             SFRes.Pextr = SF.Pextr;
