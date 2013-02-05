@@ -46,18 +46,19 @@ classdef CStrat < handle
         end
        
         function setXest(SF, Xmin, Xmax)
-            jXestmin = floor(Xmin./SF.dX);
-            SF.Xestmin = Xmin.*SF.dX;
+%             jXestmin = jXmin;
+%             jXestmax = jXmax;
             
-            jXestmax = ceil(Xmax./SF.dX);
-            SF.Xestmax = Xmax.*SF.dX;
-            
-            SF.Xestmin = jXestmin.*SF.dX;
-            SF.Xestmax = jXestmax.*SF.dX;
+%             SF.Xestmin = jXestmin.*SF.dX;
+%             SF.Xestmax = jXestmax.*SF.dX;
+            SF.Xestmin = Xmin;
+            SF.Xestmax = Xmax;
             for n = 1:SF.nx
                 SF.Xest{n} = SF.Xestmin(n):SF.dX(n):SF.Xestmax(n);
+                SF.lenXest(n) = length(SF.Xest{n});
             end
-            SF.lenXest = jXestmax - jXestmin + 1;
+%             SF.lenXest = jXestmax - jXestmin + 1;
+
             
             SF.Xextrmax = 0*SF.Xestmax;
             SF.Xextrmin = 0*SF.Xestmin;
@@ -104,9 +105,16 @@ classdef CStrat < handle
             SF.Xextrmin(SF.nx) = SF.Xestmin(SF.nx) - 5*SF.sqrtDxx;
             
             jXextrmax = ceil(SF.Xextrmax./SF.dX);
-            SF.Xextrmax = jXextrmax.*SF.dX;
             jXextrmin = floor(SF.Xextrmin./SF.dX);
+%             %TEMP
+%                 jXextrmax = jXextrmax + 4;
+%                 jXextrmin = jXextrmin - 4;
+%             %END TEMP
+%             
+            
+            SF.Xextrmax = jXextrmax.*SF.dX;
             SF.Xextrmin = jXextrmin.*SF.dX;
+            
             
             for n = 1:SF.nx
                 SF.Xextr{n} = SF.Xextrmin(n):SF.dX(n):SF.Xextrmax(n);
@@ -120,7 +128,7 @@ classdef CStrat < handle
             s = [s ');'];
             eval(s);            
             
-            SF.ExpInExtr = nan(SF.lenXextr(SF.nx), SF.lenXest(SF.nx));
+            SF.ExpInExtr = nan(SF.lenXest(SF.nx), SF.lenXextr(SF.nx));
             for i = 1:SF.lenXextr(SF.nx)
                 for j = 1:SF.lenXest(SF.nx)
                         SF.ExpInExtr(j, i) = exp( -0.5*(SF.Xextr{SF.nx}(i) -  SF.Xest{SF.nx}(j)).^2*SF.Dxxm1 );
@@ -186,9 +194,17 @@ classdef CStrat < handle
         
         function nmax = getnArgMaxPest(SF)
             if SF.nx == 2
-                [a b] = max(SF.Pest);
-                [nul, n2] = max(a);
-                n1 = b(n2);
+                if SF.lenXest(1) == 1
+                    n1 = 1;
+                    [nul, n2] = max(SF.Pest);
+                elseif SF.lenXest(2) == 1
+                    n2 = 1;
+                    [nul, n1]  = max(SF.Pest);
+                else
+                    [a b] = max(SF.Pest);
+                    [nul, n2] = max(a);
+                    n1 = b(n2);
+                end
                 nmax = [n1, n2];
             else
                 disp('Need some function there... getArgMaxPest');
@@ -226,6 +242,7 @@ classdef CStrat < handle
         function Observe(SF, lnL)
             ln_pest = log(SF.separatePD(SF.Pextr, 120)) + lnL;
             pest = SF.separatePD_ln(ln_pest, 10);
+%             pest = SF.separatePD_ln(ln_pest, 20);
             SF.Pest = SF.normPD(pest);
         end
         
